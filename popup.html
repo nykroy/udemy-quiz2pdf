@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Udemy Quiz PDF Generator</title>
+    <style>
+        body {
+            width: 300px;
+            padding: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+    <!-- Include pdfmake libraries -->
+    <script src="pdfmake.min.js"></script>
+    <script src="vfs_fonts.js"></script>
+</head>
+
+<body>
+    <h2>Udemy Quiz PDF Generator</h2>
+    <button id="generatePDF">Generate PDF</button>
+    <div id="status"></div>
+    <script src="popup.js"></script>
+</body>
+
+</html>
