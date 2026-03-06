@@ -17,23 +17,20 @@ document.addEventListener('DOMContentLoaded', () => {
             status.textContent = 'Capturing quiz data...';
 
             // Send message to content script
-            console.log("Sending message to content script...");
             const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'captureQuizData'
             });
-
-            console.log("Received response:", response);
 
             if (!response || !response.success) {
                 throw new Error(response?.error || 'Failed to capture quiz data');
             }
 
-            status.textContent = 'Generating PDF...';
+            status.textContent = `Generating PDF... (${response.data?.length || 0} questions)`;
 
             // Pass both data and title to generatePDF
             await generatePDF(response.data, response.title);
 
-            status.textContent = 'PDF generated successfully!';
+            status.textContent = `PDF generated! (${response.data?.length || 0} questions)`;
         } catch (error) {
             console.error('Error:', error);
             status.textContent = `Error: ${error.message}`;
@@ -89,21 +86,36 @@ async function generatePDF(questions, title) {
 }
 
 function cleanHtml(text) {
-    // Remove img tags and their content
-    text = text.replace(/<img[^>]+>/g, '');
+    if (!text) return '';
 
-    // Remove links but keep their text
-    text = text.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
-    text = text.replace(/<p[^>]*>(.*?)<\/p>/g, '$1');
+    // Replace <br> and <br/> with newlines
+    text = text.replace(/<br\s*\/?>/gi, '\n');
 
-    // Convert <strong> to bold tags (pdfmake handles bold differently)
-    text = text.replace(/<strong>(.*?)<\/strong>/g, '$1');  // We'll handle bold with styling
+    // Replace block-level closing tags with newlines for readability
+    text = text.replace(/<\/(?:p|div|li|h[1-6]|pre|blockquote|tr)>/gi, '\n');
 
-    // Remove other problematic tags
-    text = text.replace(/<code>|<\/code>|<pre>|<\/pre>/g, '');
+    // Replace <li> opening with bullet
+    text = text.replace(/<li[^>]*>/gi, '• ');
 
-    // Clean up any double spaces or newlines
-    text = text.replace(/\s+/g, ' ');
+    // Remove all remaining HTML tags
+    text = text.replace(/<[^>]+>/g, '');
+
+    // Decode HTML entities
+    text = text.replace(/&lt;/g, '<');
+    text = text.replace(/&gt;/g, '>');
+    text = text.replace(/&amp;/g, '&');
+    text = text.replace(/&quot;/g, '"');
+    text = text.replace(/&#39;/g, "'");
+    text = text.replace(/&apos;/g, "'");
+    text = text.replace(/&nbsp;/g, ' ');
+    text = text.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(code));
+    text = text.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+
+    // Clean up excessive whitespace
+    text = text.replace(/[ \t]+/g, ' ');           // collapse horizontal spaces
+    text = text.replace(/\n[ \t]+/g, '\n');         // trim leading spaces on lines
+    text = text.replace(/[ \t]+\n/g, '\n');         // trim trailing spaces on lines
+    text = text.replace(/\n{3,}/g, '\n\n');         // max 2 consecutive newlines
 
     return text.trim();
 }
@@ -144,4 +156,4 @@ function generateAnswerKeyContent(questions) {
     });
 
     return content;
-} 
+}
